@@ -7,43 +7,47 @@ import (
 )
 
 type FeatureMap struct {
-	Features []Feature `json:"features"`
+	Features map[string]Feature `json:"features"`
 }
 var FM *FeatureMap
 
 type Feature struct {
-	Toggle       bool                `json:"toggle"`
+	Toggle       bool                `json:"toggle,omitempty"`
 	Name         string              `json:"name"`
-	Help         string              `json:"-"`
+	Desc         string              `json:"-"`
 	Init         func() error        `json:"-"`
 	Cmds         []*cmds.Cmd         `json:"-"`
 	ServiceChat  services.Service    `json:"-"`
 	ServiceConvo convos.ConvoService `json:"-"`
 }
 
-func SetFeatures(features []Feature) {
+func SetFeatures(features map[string]Feature) {
 	if FM == nil {
 		FM = &FeatureMap{}
 	}
 	FM.Features = features
 }
 func IsEnabled(feature string) bool {
-	for _, f := range FM.Features {
-		if feature == f.Name {
-			return f.Toggle
-		}
+	f, exists := FM.Features[feature]
+	if exists {
+		return f.Toggle
 	}
 	return false
 }
 func UpdateFeature(feature Feature) {
-	if FM != nil {
-		if FM.Features != nil && len(FM.Features) > 0 {
-			for i := 0; i < len(FM.Features); i++ {
-				if FM.Features[i].Name == feature.Name {
-					feature.Toggle = FM.Features[i].Toggle
-					FM.Features[i] = feature
-				}
-			}
+	if FM != nil && FM.Features != nil {
+		if _, exists := FM.Features[feature.Name]; exists {
+			feature.Toggle = FM.Features[feature.Name].Toggle
+			FM.Features[feature.Name] = feature
 		}
 	}
+}
+func GetEnabledFeatures() []string {
+	enabledFeatures := make([]string, 0)
+	for fName, f := range FM.Features {
+		if f.Toggle {
+			enabledFeatures = append(enabledFeatures, fName)
+		}
+	}
+	return enabledFeatures
 }
